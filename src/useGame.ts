@@ -12,36 +12,34 @@ function getAudioCtx(): AudioContext {
   return audioCtx
 }
 
-function playTone(freq: number, duration: number) {
+function playTone(freq: number, duration: number, gain: number) {
   try {
     const ctx = getAudioCtx()
     const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
+    const g = ctx.createGain()
     osc.type = 'sine'
     osc.frequency.value = freq
-    gain.gain.value = 1.0
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
-    osc.connect(gain)
-    gain.connect(ctx.destination)
+    g.gain.value = gain
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+    osc.connect(g)
+    g.connect(ctx.destination)
     osc.start(ctx.currentTime)
     osc.stop(ctx.currentTime + duration)
-  } catch {
-    // Audio not available
-  }
+  } catch {}
 }
 
 export function playFeedback(gesture: Gesture) {
   if (gesture === 'correct') {
-    playTone(880, 0.15)
+    playTone(880, 0.15, 1.5)
     navigator.vibrate?.([60, 40, 60])
   } else {
-    playTone(350, 0.25)
+    playTone(350, 0.25, 4.0)
     navigator.vibrate?.(180)
   }
 }
 
 export function playCountdownBeep() {
-  playTone(660, 0.1)
+  playTone(660, 0.1, 2.0)
   navigator.vibrate?.(30)
 }
 
