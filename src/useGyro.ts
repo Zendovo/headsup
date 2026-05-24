@@ -1,68 +1,49 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import useGyroscope from 'react-hook-gyroscope'
-
-export type SensorBackend = 'GenericSensor' | 'DeviceOrientation' | null
 
 export type PermState = 'unknown' | 'granted' | 'denied'
 
-// Generic Sensor API (Android Chrome) via react-hook-gyroscope
-export function GenericGyroReader({
-  onReading,
-}: {
-  onReading: (v: { x: number | null; y: number | null; z: number | null }) => void
-}) {
-  const g = useGyroscope({ frequency: 30 })
-  useEffect(() => { onReading(g) }, [g.x, g.y, g.z, onReading])
-  return null
+export interface DOEData {
+  alpha: number | null
+  beta: number | null
+  gamma: number | null
 }
 
-// DeviceOrientationEvent (iOS)
-const doeAvailable = typeof DeviceOrientationEvent !== 'undefined'
+const available = typeof DeviceOrientationEvent !== 'undefined'
 
 export function useDeviceOrientation() {
-  const [beta, setBeta] = useState<number | null>(null)
-  const [gamma, setGamma] = useState<number | null>(null)
-  const [alpha, setAlpha] = useState<number | null>(null)
-  const [perm, setPerm] = useState<PermState>(doeAvailable ? 'unknown' : 'denied')
-  const listenerRef = useRef<((e: Event) => void) | null>(null)
+  const [data, setData] = useState<DOEData>({ alpha: null, beta: null, gamma: null })
+  const [perm, setPerm] = useState<PermState>(available ? 'unknown' : 'denied')
+  const ref = useRef<((e: Event) => void) | null>(null)
 
-  const removeListener = useCallback(() => {
-    if (listenerRef.current) {
-      window.removeEventListener('deviceorientation', listenerRef.current)
-      listenerRef.current = null
-    }
+  const remove = useCallback(() => {
+    if (ref.current) { window.removeEventListener('deviceorientation', ref.current); ref.current = null }
   }, [])
 
-  const addListener = useCallback(() => {
-    removeListener()
-    const handler = (e: Event) => {
+  const add = useCallback(() => {
+    remove()
+    const h = (e: Event) => {
       const ev = e as DeviceOrientationEvent
-      if (ev.beta !== null) setBeta(ev.beta)
-      if (ev.gamma !== null) setGamma(ev.gamma)
-      if (ev.alpha !== null) setAlpha(ev.alpha)
+      setData({ alpha: ev.alpha, beta: ev.beta, gamma: ev.gamma })
     }
-    listenerRef.current = handler
-    window.addEventListener('deviceorientation', handler)
-  }, [removeListener])
+    ref.current = h
+    window.addEventListener('deviceorientation', h)
+  }, [remove])
 
-  useEffect(() => () => removeListener(), [removeListener])
+  useEffect(() => () => remove(), [remove])
 
-  const requestAndListen = useCallback(async () => {
-    if (!doeAvailable) { setPerm('denied'); return }
-
-    const D = DeviceOrientationEvent as unknown as {
-      requestPermission?: () => Promise<'granted' | 'denied'>
-    }
+  const request = useCallback(async () => {
+    if (!available) { setPerm('denied'); return }
+    const D = DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<'granted' | 'denied'> }
     if (typeof D.requestPermission === 'function') {
       try {
-        const result = await D.requestPermission()
-        if (result === 'granted') { setPerm('granted'); addListener() }
+        const r = await D.requestPermission()
+        if (r === 'granted') { setPerm('granted'); add() }
         else { setPerm('denied') }
       } catch { setPerm('denied') }
     } else {
-      setPerm('granted'); addListener()
+      setPerm('granted'); add()
     }
-  }, [addListener])
+  }, [add])
 
-  return { beta, gamma, alpha, perm, requestAndListen }
+  return { ...data, perm, request }
 }
