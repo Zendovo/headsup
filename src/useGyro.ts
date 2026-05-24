@@ -10,6 +10,16 @@ export interface DOEData {
 
 const available = typeof DeviceOrientationEvent !== 'undefined'
 
+export function getOrientationAngle(): number {
+  return screen.orientation?.angle ?? 0
+}
+
+export function getLogicalTilt(gamma: number, angle: number): number | null {
+  if (angle === 90) return gamma
+  if (angle === -90 || angle === 270) return -gamma
+  return null
+}
+
 export function useDeviceOrientation() {
   const [data, setData] = useState<DOEData>({ alpha: null, beta: null, gamma: null })
   const [perm, setPerm] = useState<PermState>(available ? 'unknown' : 'denied')
