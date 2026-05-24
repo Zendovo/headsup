@@ -9,7 +9,7 @@ interface GameScreenProps {
 
 export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   const { alpha, gamma, perm, request } = useDeviceOrientation()
-  const { phase, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
+  const { phase, index, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
 
   const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
   const triggered = useRef(true)
@@ -79,6 +79,8 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
           disabled={!canStart}
           onClick={async () => {
             if (perm === 'unknown') await request()
+            try { await document.documentElement.requestFullscreen() } catch {}
+            try { await navigator.wakeLock.request('screen') } catch {}
             start()
           }}
         >
@@ -97,7 +99,7 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
         <p className="pass-count">Passed: {pass}</p>
 
         <div className="word-list">
-          {words.map((w, i) => {
+          {words.slice(0, index).map((w, i) => {
             const r = results[i]
             return (
               <span key={i} className={`word-item${r === 'correct' ? ' correct' : ''}${r === 'pass' ? ' pass' : ''}`}>

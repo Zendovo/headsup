@@ -31,21 +31,18 @@ function playTone(freq: number, duration: number) {
 }
 
 export function playFeedback(gesture: Gesture) {
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    if (gesture === 'correct') navigator.vibrate([60, 40, 60])
-    else navigator.vibrate(180)
+  if (gesture === 'correct') {
+    playTone(880, 0.15)
+    navigator.vibrate?.([60, 40, 60])
   } else {
-    if (gesture === 'correct') playTone(880, 0.15)
-    else playTone(350, 0.25)
+    playTone(350, 0.25)
+    navigator.vibrate?.(180)
   }
 }
 
 export function playCountdownBeep() {
-  if (typeof navigator !== 'undefined' && navigator.vibrate) {
-    navigator.vibrate(30)
-  } else {
-    playTone(660, 0.1)
-  }
+  playTone(660, 0.1)
+  navigator.vibrate?.(30)
 }
 
 export function useGame(categoryIds: string[]) {
@@ -129,5 +126,5 @@ export function useGame(categoryIds: string[]) {
     }, 400)
   }, [index, words.length])
 
-  return { phase, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start }
+  return { phase, index, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start }
 }
