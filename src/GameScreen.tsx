@@ -9,18 +9,13 @@ interface GameScreenProps {
 
 export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   const { alpha, gamma, perm, request } = useDeviceOrientation()
-  const { phase, current, correct, pass, feedback, record, start } = useGame(categoryIds)
+  const { phase, current, correct, pass, feedback, timeLeft, record, start } = useGame(categoryIds)
 
-  const [landscape, setLandscape] = useState(false)
   const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
-
   const triggered = useRef(false)
 
   useEffect(() => {
-    const check = () => {
-      setLandscape(window.screen.width > window.screen.height)
-      setOrientationAngle(getOrientationAngle())
-    }
+    const check = () => setOrientationAngle(getOrientationAngle())
     check()
     window.addEventListener('resize', check)
     window.addEventListener('orientationchange', check)
@@ -30,6 +25,8 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
     }
   }, [])
 
+  const inLandscape = orientationAngle === 90 || orientationAngle === -90 || orientationAngle === 270
+
   // Tilt gesture detection
   useEffect(() => {
     if (phase !== 'playing' || gamma == null) return
@@ -37,12 +34,7 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
     const lt = getLogicalTilt(gamma, orientationAngle)
     if (lt == null) return
 
-    // Rearm once back in neutral zone
-    if (Math.abs(lt) < 15) {
-      triggered.current = false
-      return
-    }
-
+    if (Math.abs(lt) < 15) { triggered.current = false; return }
     if (triggered.current) return
 
     if (lt > 40) { triggered.current = true; record('correct') }
@@ -50,18 +42,42 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   }, [gamma, orientationAngle, phase, record])
 
   if (phase === 'start') {
+    const canStart = inLandscape && perm !== 'denied'
+
     return (
       <div className="game-screen start">
         <h2>Heads Up!</h2>
-        <p className="instructions">
-          Rotate your phone to landscape and hold it to your forehead.
-        </p>
-        <SensorInfo alpha={alpha} gamma={gamma} angle={orientationAngle} landscape={landscape} perm={perm} />
-        <button className="start-btn" onClick={async () => {
-          if (perm === 'unknown') await request()
-          start()
-        }}>
-          {perm === 'unknown' ? 'Enable Gyro & Start' : 'Start'}
+
+        {!inLandscape && (
+          <div className="rotate-prompt">
+            <div className="rotate-icon">⟳</div>
+            <p className="instructions">
+              Rotate your phone to <strong>landscape</strong> to play
+            </p>
+          </div>
+        )}
+
+        {inLandscape && (
+          <p className="instructions">
+            Hold your phone to your forehead.<br />
+            Tilt down for ✓ Correct · Tilt up for ✗ Pass
+          </p>
+        )}
+
+        <SensorInfo
+          alpha={alpha} gamma={gamma} angle={orientationAngle}
+          landscape={inLandscape} perm={perm}
+        />
+
+        <button
+          className={`start-btn${!canStart ? ' disabled' : ''}`}
+          disabled={!canStart}
+          onClick={async () => {
+            if (perm === 'unknown') await request()
+            start()
+          }}
+        >
+          {!inLandscape ? 'Rotate to landscape' : perm === 'unknown' ? 'Enable Gyro & Start' : 'Start'}
         </button>
       </div>
     )
@@ -80,23 +96,24 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
     )
   }
 
-  const lt = gamma != null ? getLogicalTilt(gamma, orientationAngle) : null
+  const timerClass = timeLeft <= 10 ? 'timer urgent' : 'timer'
 
   return (
     <div className="game-screen playing">
       <div className="top-bar">
         <button className="back-btn" onClick={onBack}>✕</button>
         <span className="score">{correct}/{correct + pass}</span>
-        <span className="sensor-entry" style={{ fontSize: '0.7rem' }}>
-          tilt: {lt?.toFixed(1) ?? '—'}
-        </span>
+        <span className={timerClass}>{timeLeft}s</span>
       </div>
 
       <div className="word-display">
         <span className="word" key={current}>{current}</span>
       </div>
 
-      <SensorInfo alpha={alpha} gamma={gamma} angle={orientationAngle} landscape={landscape} perm={perm} />
+      <SensorInfo
+        alpha={alpha} gamma={gamma} angle={orientationAngle}
+        landscape={inLandscape} perm={perm}
+      />
 
       {feedback && (
         <div className={`gesture-feedback ${feedback}`}>
