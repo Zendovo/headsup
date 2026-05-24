@@ -40,6 +40,61 @@ export const categories: Category[] = [
       'Weightlifting', 'Karate', 'Diving', 'Skateboarding', 'Marathon',
     ],
   },
+  {
+    id: 'games',
+    name: 'Games',
+    emoji: '🎮',
+    words: [
+      'Minecraft', 'Fortnite', 'Tetris', 'Super Mario', 'The Legend of Zelda',
+      'Among Us', 'Grand Theft Auto', 'Pac-Man', 'Sonic the Hedgehog', 'Call of Duty',
+      'Pokémon', 'Animal Crossing', 'Street Fighter', 'Portal', 'Skyrim',
+      'Mario Kart', 'Undertale', 'Roblox', 'God of War', 'Halo',
+    ],
+  },
+  {
+    id: 'artists',
+    name: 'Artists',
+    emoji: '🎨',
+    words: [
+      'Taylor Swift', 'Beyoncé', 'Ed Sheeran', 'Drake', 'Adele',
+      'Kanye West', 'Billie Eilish', 'Bruno Mars', 'Rihanna', 'The Weeknd',
+      'Ariana Grande', 'Eminem', 'Lady Gaga', 'Harry Styles', 'Dua Lipa',
+      'Post Malone', 'SZA', 'Bad Bunny', 'Olivia Rodrigo', 'Kendrick Lamar',
+    ],
+  },
+  {
+    id: 'actors',
+    name: 'Actors',
+    emoji: '🎬',
+    words: [
+      'Tom Cruise', 'Scarlett Johansson', 'Dwayne Johnson', 'Leonardo DiCaprio', 'Jennifer Lawrence',
+      'Robert Downey Jr.', 'Margot Robbie', 'Denzel Washington', 'Zendaya', 'Chris Hemsworth',
+      'Emma Stone', 'Morgan Freeman', 'Cillian Murphy', 'Tom Hanks', 'Zoe Saldaña',
+      'Jake Gyllenhaal', 'Viola Davis', 'Ryan Gosling', 'Florence Pugh', 'Pedro Pascal',
+    ],
+  },
+  {
+    id: 'programming',
+    name: 'Programming',
+    emoji: '💻',
+    words: [
+      'React', 'Python', 'JavaScript', 'TypeScript', 'GitHub',
+      'SQL', 'Docker', 'Kubernetes', 'HTML', 'CSS',
+      'Node.js', 'Rust', 'Go', 'Linux', 'API',
+      'Machine Learning', 'Cloud Computing', 'Blockchain', 'Algorithm', 'Debugging',
+    ],
+  },
+  {
+    id: 'science',
+    name: 'Science',
+    emoji: '🔬',
+    words: [
+      'Gravity', 'Evolution', 'Black Hole', 'DNA', 'Photosynthesis',
+      'Periodic Table', 'Climate Change', 'Relativity', 'CRISPR', 'Volcano',
+      'Quantum Mechanics', 'Fossil', 'Solar System', 'Mitosis', 'Glacier',
+      'Radiation', 'Ecosystem', 'Neutron Star', 'Antibiotic', 'Particle Accelerator',
+    ],
+  },
 ]
 
 export function shuffle<T>(arr: T[]): T[] {

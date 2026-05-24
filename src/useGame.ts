@@ -19,7 +19,7 @@ function playTone(freq: number, duration: number) {
     const gain = ctx.createGain()
     osc.type = 'sine'
     osc.frequency.value = freq
-    gain.gain.value = 0.2
+    gain.gain.value = 0.6
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
     osc.connect(gain)
     gain.connect(ctx.destination)
@@ -45,10 +45,13 @@ export function playCountdownBeep() {
   navigator.vibrate?.(30)
 }
 
-export function useGame(categoryIds: string[]) {
+export function useGame(categoryIds: string[], customWords: string[] = []) {
   const words = useMemo(
-    () => shuffle(categories.filter((c) => categoryIds.includes(c.id)).flatMap((c) => c.words)),
-    [categoryIds],
+    () => shuffle([
+      ...categories.filter((c) => categoryIds.includes(c.id)).flatMap((c) => c.words),
+      ...customWords,
+    ]),
+    [categoryIds, customWords],
   )
 
   const [phase, setPhase] = useState<Phase>('start')

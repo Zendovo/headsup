@@ -39,26 +39,28 @@ h1, h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 16px;
   padding: 24px;
+  overflow-y: auto;
 }
 
 .start-screen h1 {
   font-size: 2.5rem;
   font-weight: 800;
   letter-spacing: -1px;
+  margin-top: 8px;
 }
 
 .subtitle {
   color: var(--text-dim);
-  margin: 0 0 8px;
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 .categories {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -67,36 +69,130 @@ h1, h2 {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 14px 16px;
   background: var(--surface);
   border-radius: 12px;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1rem;
   transition: background 0.15s;
+  border: 2px solid transparent;
 }
 
 .category-btn:active {
   background: #2a2a3e;
 }
 
+.category-btn.selected {
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.1);
+}
+
+.cat-check {
+  width: 20px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .cat-emoji {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
 }
 
 .cat-name {
   font-weight: 600;
 }
 
-.all-btn {
+.link-btn {
   all: unset;
-  padding: 12px 24px;
-  background: var(--accent);
-  color: white;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-btn:active {
+  color: var(--text);
+}
+
+/* Custom words section */
+.custom-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--surface);
+}
+
+.custom-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #333;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.custom-input:focus {
+  border-color: var(--accent);
+}
+
+.add-btn {
+  all: unset;
+  padding: 12px 20px;
+  background: var(--surface);
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
   font-size: 0.95rem;
-  margin-top: 8px;
+  color: var(--accent);
+}
+
+.add-btn:active {
+  background: #2a2a3e;
+}
+
+.custom-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.custom-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.tag-remove {
+  all: unset;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--text-dim);
+  padding: 0 2px;
+}
+
+.tag-remove:active {
+  color: var(--pass);
+}
+
+.install-note {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.5;
 }
 
 /* Game Screen */
@@ -113,30 +209,11 @@ h1, h2 {
   padding: 24px;
 }
 
-/* Ready phase */
-.game-screen.ready {
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 24px;
-}
-
 .instructions {
   text-align: center;
   color: var(--text-dim);
   line-height: 1.6;
   margin: 0;
-}
-
-.word-preview {
-  background: var(--surface);
-  padding: 20px 32px;
-  border-radius: 12px;
-}
-
-.word-preview .word {
-  font-size: 1.5rem;
-  font-weight: 700;
 }
 
 .start-btn {
@@ -148,6 +225,11 @@ h1, h2 {
   cursor: pointer;
   font-weight: 700;
   font-size: 1.1rem;
+}
+
+.start-btn.disabled {
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 /* Playing phase */
@@ -189,39 +271,6 @@ h1, h2 {
   font-weight: 800;
   text-align: center;
   word-break: break-word;
-}
-
-.action-bar {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  padding-bottom: 32px;
-}
-
-.action-btn {
-  all: unset;
-  flex: 1;
-  text-align: center;
-  padding: 18px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-
-.action-btn:active {
-  transform: scale(0.96);
-}
-
-.pass-btn {
-  background: var(--pass);
-  color: white;
-}
-
-.correct-btn {
-  background: var(--correct);
-  color: white;
 }
 
 .gesture-feedback {
@@ -294,38 +343,6 @@ h1, h2 {
   margin: 0 0 16px;
 }
 
-.sensor-panel {
-  background: var(--surface);
-  border-radius: 8px;
-  padding: 8px 14px;
-  margin: 0 16px;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.5;
-}
-
-.sensor-backend {
-  color: var(--text-dim);
-  margin-bottom: 2px;
-}
-
-.sensor-values {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.sensor-entry {
-  color: var(--text);
-}
-
-.gyro-hint {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--accent);
-  font-weight: 600;
-}
-
 .timer {
   font-size: 1.1rem;
   font-weight: 700;
@@ -357,11 +374,6 @@ h1, h2 {
 @keyframes pulse {
   from { opacity: 1; }
   to { opacity: 0.4; }
-}
-
-.start-btn.disabled {
-  opacity: 0.4;
-  pointer-events: none;
 }
 
 .countdown-number {

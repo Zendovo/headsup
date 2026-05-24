@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { StartScreen } from './StartScreen'
 import { GameScreen } from './GameScreen'
 
-type Screen = { kind: 'start' } | { kind: 'game'; categories: string[] }
+type Screen = { kind: 'start' } | { kind: 'game'; categories: string[]; custom: string[] }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ kind: 'start' })
@@ -11,13 +11,14 @@ export default function App() {
     case 'start':
       return (
         <StartScreen
-          onStart={(ids) => setScreen({ kind: 'game', categories: ids })}
+          onStart={(ids, custom) => setScreen({ kind: 'game', categories: ids, custom })}
         />
       )
     case 'game':
       return (
         <GameScreen
           categoryIds={screen.categories}
+          customWords={screen.custom}
           onBack={() => setScreen({ kind: 'start' })}
         />
       )

@@ -4,12 +4,13 @@ import { useGame } from './useGame'
 
 interface GameScreenProps {
   categoryIds: string[]
+  customWords: string[]
   onBack: () => void
 }
 
-export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
-  const { alpha, gamma, perm, request } = useDeviceOrientation()
-  const { phase, index, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
+export function GameScreen({ categoryIds, customWords, onBack }: GameScreenProps) {
+  const { gamma, perm, request } = useDeviceOrientation()
+  const { phase, index, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start } = useGame(categoryIds, customWords)
 
   const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
   const triggered = useRef(true)
@@ -25,14 +26,12 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
     }
   }, [])
 
-  // Require returning to neutral before first gesture can fire
   useEffect(() => {
     if (phase === 'playing') triggered.current = true
   }, [phase])
 
   const inLandscape = orientationAngle === 90 || orientationAngle === -90 || orientationAngle === 270
 
-  // Tilt gesture detection
   useEffect(() => {
     if (phase !== 'playing' || gamma == null) return
 
@@ -68,11 +67,6 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
             Tilt down for ✓ Correct · Tilt up for ✗ Pass
           </p>
         )}
-
-        <SensorInfo
-          alpha={alpha} gamma={gamma} angle={orientationAngle}
-          landscape={inLandscape} perm={perm}
-        />
 
         <button
           className={`start-btn${!canStart ? ' disabled' : ''}`}
@@ -137,43 +131,11 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
         <span className="word" key={current}>{current}</span>
       </div>
 
-      <SensorInfo
-        alpha={alpha} gamma={gamma} angle={orientationAngle}
-        landscape={inLandscape} perm={perm}
-      />
-
       {feedback && (
         <div className={`gesture-feedback ${feedback}`}>
           {feedback === 'correct' ? '✓' : '✗'}
         </div>
       )}
-
-      <div className="action-bar">
-        <button className="action-btn pass-btn" onClick={() => record('pass')}>Pass</button>
-        <button className="action-btn correct-btn" onClick={() => record('correct')}>Correct</button>
-      </div>
-    </div>
-  )
-}
-
-function SensorInfo({
-  alpha, gamma, perm, landscape, angle,
-}: {
-  alpha: number | null; gamma: number | null; perm: string; landscape: boolean; angle: number
-}) {
-  const lt = gamma != null ? getLogicalTilt(gamma, angle) : null
-  return (
-    <div className="sensor-panel">
-      <div className="sensor-backend">
-        DeviceOrientation{perm === 'denied' ? ' (denied)' : ''}
-        {!landscape && <span className="warn"> — rotate to landscape</span>}
-      </div>
-      <div className="sensor-values">
-        <span>α: {alpha?.toFixed(1) ?? '—'}°</span>
-        <span>γ: {gamma?.toFixed(1) ?? '—'}°</span>
-        <span>∠: {angle}°</span>
-        <span>tilt: {lt?.toFixed(1) ?? '—'}</span>
-      </div>
     </div>
   )
 }
