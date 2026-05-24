@@ -7,8 +7,31 @@ interface GameScreenProps {
   onBack: () => void
 }
 
+function getOrientationAngle(): number {
+  const s = screen.orientation
+  if (!s) return 0
+  return s.angle ?? 0
+}
+
+// logicalTilt: positive = phone tilted downward (correct)
+//              negative = phone tilted upward (pass)
+function computeLogicalTilt(
+  beta: number,
+  gamma: number,
+  angle: number,
+): number {
+  switch (angle) {
+    case 0:   return -beta
+    case 180: return beta
+    case 90:  return -gamma
+    case -90:
+    case 270: return gamma
+    default:  return -gamma
+  }
+}
+
 export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
-  const { alpha, gamma, perm, request } = useDeviceOrientation()
+  const { alpha, beta, gamma, perm, request } = useDeviceOrientation()
 
   const [phase, setPhase] = useState<'start' | 'playing' | 'done'>('start')
   const [index, setIndex] = useState(0)
@@ -17,10 +40,13 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   const [lastGesture, setLastGesture] = useState<'correct' | 'pass' | null>(null)
   const [landscape, setLandscape] = useState(false)
   const [gyroResp, setGyroResp] = useState<string>('—')
+  const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
 
   const locked = useRef(false)
-  const prevGamma = useRef<number | null>(null)
-  const gammaDir = useRef<string | null>(null)
+  const triggered = useRef(false)
+  const restTilt = useRef<number | null>(null)
+  const hasRest = useRef(false)
+  const prevLT = useRef<number | null>(null)
 
   const selectedCategories = categories.filter((c) => categoryIds.includes(c.id))
   const allWords = shuffle(selectedCategories.flatMap((c) => c.words))
@@ -32,10 +58,17 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   }, [isDone, phase])
 
   useEffect(() => {
-    const check = () => setLandscape(window.screen.width > window.screen.height)
+    const check = () => {
+      setLandscape(window.screen.width > window.screen.height)
+      setOrientationAngle(getOrientationAngle())
+    }
     check()
     window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
+    window.addEventListener('orientationchange', check)
+    return () => {
+      window.removeEventListener('resize', check)
+      window.removeEventListener('orientationchange', check)
+    }
   }, [])
 
   const advance = useCallback((gesture: 'correct' | 'pass') => {
@@ -48,53 +81,46 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
       setLastGesture(null)
       setIndex((i) => i + 1)
       locked.current = false
-      prevGamma.current = null
-      gammaDir.current = null
+      hasRest.current = false
+      restTilt.current = null
+      triggered.current = false
+      prevLT.current = null
     }, 500)
   }, [])
 
-  // Gesture detection via gamma
+  // Gesture detection via logicalTilt
   useEffect(() => {
-    if (phase !== 'playing' || gamma === null || alpha === null) return
-    if (locked.current) return
+    if (phase !== 'playing' || beta === null || gamma === null) return
+    if (locked.current || triggered.current) return
 
-    const prev = prevGamma.current
-    prevGamma.current = gamma
+    const lt = computeLogicalTilt(beta, gamma, orientationAngle)
+    const prev = prevLT.current
+    prevLT.current = lt
 
-    if (prev === null) return
-
-    // At rest gamma ≈ ±90 in landscape on forehead.
-    // Tilt forward → gamma goes from ±90 toward 0.
-    // Tilt backward → gamma goes from ±90 toward 0 (from the other side).
-    // alpha 0-180: gamma +90→0 = pass, gamma -90→0 = correct
-    // alpha 180-360: gamma -90→0 = pass, gamma +90→0 = correct
-
-    const abs = Math.abs(gamma)
-    const prevAbs = Math.abs(prev)
-    const direction = prevAbs > abs ? 'shrinking' : prevAbs < abs ? 'growing' : 'same'
-
-    // Wait for |gamma| to start near ±90 (rest position)
-    if (gammaDir.current === null) {
-      if (abs > 60) gammaDir.current = 'rest'
+    // Wait for rest (|logicalTilt| near its expected rest value, ~90)
+    const absLT = Math.abs(lt)
+    if (!hasRest.current) {
+      if (absLT > 50) {
+        hasRest.current = true
+        restTilt.current = lt
+      }
       return
     }
+    if (prev === null) return
 
-    // Detect |gamma| shrinking from ±90 toward 0 past threshold
-    if (direction === 'shrinking' && abs < 40 && abs > 5) {
-      const alphaRange = alpha < 180 ? 0 : 1
-      const gammaPos = gamma > 0
-      let gesture: 'pass' | 'correct'
+    const deviation = lt - restTilt.current!
 
-      if (alphaRange === 0) {
-        gesture = gammaPos ? 'pass' : 'correct'
-      } else {
-        gesture = gammaPos ? 'correct' : 'pass'
-      }
-
-      setGyroResp(gesture)
-      advance(gesture)
+    // Trigger when deviation crosses threshold in either direction
+    if (deviation > 25) {
+      triggered.current = true
+      setGyroResp('correct')
+      advance('correct')
+    } else if (deviation < -25) {
+      triggered.current = true
+      setGyroResp('pass')
+      advance('pass')
     }
-  }, [gamma, alpha, phase, advance])
+  }, [beta, gamma, orientationAngle, phase, advance])
 
   if (phase === 'start') {
     return (
@@ -104,7 +130,14 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
           <strong>Rotate your phone to landscape</strong> and hold it to your forehead.
         </p>
 
-        <SensorInfo alpha={alpha} gamma={gamma} perm={perm} landscape={landscape} />
+        <SensorInfo
+          alpha={alpha}
+          gamma={gamma}
+          beta={beta}
+          perm={perm}
+          landscape={landscape}
+          angle={orientationAngle}
+        />
 
         <button className="start-btn" onClick={async () => {
           if (perm === 'unknown') await request()
@@ -129,19 +162,32 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
     )
   }
 
+  const lt = (beta !== null && gamma !== null)
+    ? computeLogicalTilt(beta, gamma, orientationAngle)
+    : null
+
   return (
     <div className="game-screen playing">
       <div className="top-bar">
         <button className="back-btn" onClick={onBack}>✕</button>
         <span className="score">{correct}/{correct + pass}</span>
-        <span className="sensor-entry" style={{ fontSize: '0.7rem' }}>γ: {gamma?.toFixed(1)}°</span>
+        <span className="sensor-entry" style={{ fontSize: '0.7rem' }}>
+          tilt: {lt?.toFixed(1) ?? '—'}
+        </span>
       </div>
 
       <div className="word-display">
         <span className="word">{currentWord}</span>
       </div>
 
-      <SensorInfo alpha={alpha} gamma={gamma} perm={perm} landscape={landscape} />
+      <SensorInfo
+        alpha={alpha}
+        gamma={gamma}
+        beta={beta}
+        perm={perm}
+        landscape={landscape}
+        angle={orientationAngle}
+      />
 
       {lastGesture && (
         <div className={`gesture-feedback ${lastGesture}`}>
@@ -160,10 +206,16 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
 }
 
 function SensorInfo({
-  alpha, gamma, perm, landscape,
+  alpha, beta, gamma, perm, landscape, angle,
 }: {
-  alpha: number | null; gamma: number | null; perm: string; landscape: boolean
+  alpha: number | null
+  beta: number | null
+  gamma: number | null
+  perm: string
+  landscape: boolean
+  angle: number
 }) {
+  const lt = beta !== null && gamma !== null ? computeLogicalTilt(beta, gamma, angle) : null
   return (
     <div className="sensor-panel">
       <div className="sensor-backend">
@@ -171,8 +223,11 @@ function SensorInfo({
         {!landscape && <span className="warn"> — rotate to landscape</span>}
       </div>
       <div className="sensor-values">
-        {alpha !== null && <span>α: {alpha.toFixed(1)}°</span>}
-        {gamma !== null && <span>γ: {gamma.toFixed(1)}°</span>}
+        <span>α: {alpha?.toFixed(1) ?? '—'}°</span>
+        <span>β: {beta?.toFixed(1) ?? '—'}°</span>
+        <span>γ: {gamma?.toFixed(1) ?? '—'}°</span>
+        <span>∠: {angle}°</span>
+        <span>tilt: {lt?.toFixed(1) ?? '—'}</span>
       </div>
     </div>
   )
