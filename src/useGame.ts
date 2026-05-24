@@ -19,7 +19,7 @@ function playTone(freq: number, duration: number) {
     const gain = ctx.createGain()
     osc.type = 'sine'
     osc.frequency.value = freq
-    gain.gain.value = 0.6
+    gain.gain.value = 1.0
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
     osc.connect(gain)
     gain.connect(ctx.destination)
