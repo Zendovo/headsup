@@ -9,7 +9,7 @@ interface GameScreenProps {
 
 export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   const { alpha, gamma, perm, request } = useDeviceOrientation()
-  const { phase, current, correct, pass, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
+  const { phase, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
 
   const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
   const triggered = useRef(false)
@@ -89,8 +89,19 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
       <div className="game-screen done">
         <h2>Game Over!</h2>
         <div className="score-big">{correct} / {total}</div>
-        <p>{correct} correct out of {total}</p>
         <p className="pass-count">Passed: {pass}</p>
+
+        <div className="word-list">
+          {words.map((w, i) => {
+            const r = results[i]
+            return (
+              <span key={i} className={`word-item${r === 'correct' ? ' correct' : ''}${r === 'pass' ? ' pass' : ''}`}>
+                {w}
+              </span>
+            )
+          })}
+        </div>
+
         <button className="start-btn" onClick={onBack}>Play Again</button>
       </div>
     )

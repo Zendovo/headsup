@@ -58,6 +58,7 @@ export function useGame(categoryIds: string[]) {
   const [index, setIndex] = useState(0)
   const [correct, setCorrect] = useState(0)
   const [pass, setPass] = useState(0)
+  const [results, setResults] = useState<Record<number, Gesture>>({})
   const [feedback, setFeedback] = useState<Gesture | null>(null)
   const [timeLeft, setTimeLeft] = useState(GAME_DURATION)
   const [countdown, setCountdown] = useState(3)
@@ -109,6 +110,8 @@ export function useGame(categoryIds: string[]) {
 
     playFeedback(gesture)
 
+    setResults((r) => ({ ...r, [index]: gesture }))
+
     if (gesture === 'correct') setCorrect((c) => c + 1)
     else setPass((p) => p + 1)
 
@@ -126,5 +129,5 @@ export function useGame(categoryIds: string[]) {
     }, 400)
   }, [index, words.length])
 
-  return { phase, current, correct, pass, feedback, timeLeft, countdown, record, start }
+  return { phase, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start }
 }
