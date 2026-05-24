@@ -1,34 +1,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import useGyroscope from 'react-hook-gyroscope'
 
-// Wraps react-hook-gyroscope (Generic Sensor API, Android Chrome).
-// Only render this when typeof Gyroscope !== 'undefined' — it throws otherwise.
-export function GenericGyroReader({ onTilt }: { onTilt: (v: number | null) => void }) {
-  const g = useGyroscope({ frequency: 30 })
-  useEffect(() => { onTilt(g.x) }, [g.x, onTilt])
-  return null
-}
+export type SensorBackend = 'GenericSensor' | 'DeviceOrientation' | null
 
 export type PermState = 'unknown' | 'granted' | 'denied'
 
-export interface UseDOEReturn {
-  tilt: number | null
-  perm: PermState
-  requestAndListen: () => Promise<void>
+// Generic Sensor API (Android Chrome) via react-hook-gyroscope
+export function GenericGyroReader({
+  onReading,
+}: {
+  onReading: (v: { x: number | null; y: number | null; z: number | null }) => void
+}) {
+  const g = useGyroscope({ frequency: 30 })
+  useEffect(() => { onReading(g) }, [g.x, g.y, g.z, onReading])
+  return null
 }
 
-export function normalizeDelta(current: number, initial: number): number {
-  let d = current - initial
-  if (d > 180) d -= 360
-  if (d < -180) d += 360
-  return d
-}
-
+// DeviceOrientationEvent (iOS)
 const doeAvailable = typeof DeviceOrientationEvent !== 'undefined'
 
-// DeviceOrientationEvent fallback (iOS)
-export function useDeviceOrientation(): UseDOEReturn {
-  const [tilt, setTilt] = useState<number | null>(null)
+export function useDeviceOrientation() {
+  const [beta, setBeta] = useState<number | null>(null)
+  const [gamma, setGamma] = useState<number | null>(null)
+  const [alpha, setAlpha] = useState<number | null>(null)
   const [perm, setPerm] = useState<PermState>(doeAvailable ? 'unknown' : 'denied')
   const listenerRef = useRef<((e: Event) => void) | null>(null)
 
@@ -43,7 +37,9 @@ export function useDeviceOrientation(): UseDOEReturn {
     removeListener()
     const handler = (e: Event) => {
       const ev = e as DeviceOrientationEvent
-      if (ev.beta !== null) setTilt(ev.beta)
+      if (ev.beta !== null) setBeta(ev.beta)
+      if (ev.gamma !== null) setGamma(ev.gamma)
+      if (ev.alpha !== null) setAlpha(ev.alpha)
     }
     listenerRef.current = handler
     window.addEventListener('deviceorientation', handler)
@@ -68,5 +64,5 @@ export function useDeviceOrientation(): UseDOEReturn {
     }
   }, [addListener])
 
-  return { tilt, perm, requestAndListen }
+  return { beta, gamma, alpha, perm, requestAndListen }
 }
