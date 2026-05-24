@@ -12,7 +12,7 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   const { phase, current, correct, pass, results, words, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
 
   const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
-  const triggered = useRef(false)
+  const triggered = useRef(true)
 
   useEffect(() => {
     const check = () => setOrientationAngle(getOrientationAngle())
@@ -24,6 +24,11 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
       window.removeEventListener('orientationchange', check)
     }
   }, [])
+
+  // Require returning to neutral before first gesture can fire
+  useEffect(() => {
+    if (phase === 'playing') triggered.current = true
+  }, [phase])
 
   const inLandscape = orientationAngle === 90 || orientationAngle === -90 || orientationAngle === 270
 
