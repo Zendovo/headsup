@@ -9,7 +9,7 @@ interface GameScreenProps {
 
 export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
   const { alpha, gamma, perm, request } = useDeviceOrientation()
-  const { phase, current, correct, pass, feedback, timeLeft, record, start } = useGame(categoryIds)
+  const { phase, current, correct, pass, feedback, timeLeft, countdown, record, start } = useGame(categoryIds)
 
   const [orientationAngle, setOrientationAngle] = useState(getOrientationAngle)
   const triggered = useRef(false)
@@ -92,6 +92,15 @@ export function GameScreen({ categoryIds, onBack }: GameScreenProps) {
         <p>{correct} correct out of {total}</p>
         <p className="pass-count">Passed: {pass}</p>
         <button className="start-btn" onClick={onBack}>Play Again</button>
+      </div>
+    )
+  }
+
+  if (phase === 'countdown') {
+    return (
+      <div className="game-screen start">
+        <div className="countdown-number">{countdown > 0 ? countdown : 'Go!'}</div>
+        <p className="instructions">Get ready…</p>
       </div>
     )
   }
