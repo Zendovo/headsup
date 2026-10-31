@@ -73,8 +73,12 @@ export function GameScreen({ categoryIds, customWords, onBack }: GameScreenProps
           disabled={!canStart}
           onClick={async () => {
             if (perm === 'unknown') await request()
-            try { await document.documentElement.requestFullscreen() } catch {}
-            try { await navigator.wakeLock.request('screen') } catch {}
+            try { await document.documentElement.requestFullscreen() } catch {
+              // Fullscreen may be blocked on some browsers.
+            }
+            try { await navigator.wakeLock.request('screen') } catch {
+              // Wake lock is optional.
+            }
             start()
           }}
         >

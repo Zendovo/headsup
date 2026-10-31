@@ -1,14 +1,25 @@
 import { useState } from 'react'
-import { categories } from './data'
+import { categories, type Category } from './data'
 
 interface StartScreenProps {
   onStart: (selectedIds: string[], customWords: string[]) => void
 }
 
+const categoryGroups = categories.reduce<Array<{ name: string; categories: Category[] }>>(
+  (groups, category) => {
+    const group = groups.find((g) => g.name === category.group)
+    if (group) group.categories.push(category)
+    else groups.push({ name: category.group, categories: [category] })
+    return groups
+  },
+  [],
+)
+
 export function StartScreen({ onStart }: StartScreenProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [customWords, setCustomWords] = useState<string[]>([])
   const [input, setInput] = useState('')
+  const [query, setQuery] = useState('')
 
   const toggle = (id: string) => {
     const next = new Set(selected)
@@ -17,11 +28,25 @@ export function StartScreen({ onStart }: StartScreenProps) {
     setSelected(next)
   }
 
-  const allSelected = categories.every((c) => selected.has(c.id))
+  const search = query.trim().toLowerCase()
+  const visibleGroups = categoryGroups
+    .map((group) => ({
+      ...group,
+      categories: group.categories.filter((cat) => cat.name.toLowerCase().includes(search)),
+    }))
+    .filter((group) => group.categories.length > 0)
+
+  const visibleCategories = visibleGroups.flatMap((group) => group.categories)
+  const allSelected =
+    visibleCategories.length > 0 && visibleCategories.every((cat) => selected.has(cat.id))
 
   const toggleAll = () => {
-    if (allSelected) setSelected(new Set())
-    else setSelected(new Set(categories.map((c) => c.id)))
+    const next = new Set(selected)
+    for (const cat of visibleCategories) {
+      if (allSelected) next.delete(cat.id)
+      else next.add(cat.id)
+    }
+    setSelected(next)
   }
 
   const addWord = () => {
@@ -37,23 +62,43 @@ export function StartScreen({ onStart }: StartScreenProps) {
   return (
     <div className="start-screen">
       <h1>Heads Up!</h1>
-      <p className="subtitle">Select categories</p>
-      <div className="categories">
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            className={`category-btn${selected.has(cat.id) ? ' selected' : ''}`}
-            onClick={() => toggle(cat.id)}
-          >
-            <span className="cat-check">{selected.has(cat.id) ? '✓' : ''}</span>
-            <span className="cat-emoji">{cat.emoji}</span>
-            <span className="cat-name">{cat.name}</span>
-          </button>
+      <p className="subtitle">
+        Select categories{selected.size > 0 ? ` · ${selected.size} selected` : ''}
+      </p>
+
+      <input
+        className="category-search"
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search categories…"
+        aria-label="Search categories"
+      />
+
+      <div className="category-groups">
+        {visibleGroups.map((group) => (
+          <section key={group.name} className="category-group">
+            <h2 className="category-group-title">{group.name}</h2>
+            <div className="categories">
+              {group.categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  className={`category-btn${selected.has(cat.id) ? ' selected' : ''}`}
+                  onClick={() => toggle(cat.id)}
+                >
+                  <span className="cat-check">{selected.has(cat.id) ? '✓' : ''}</span>
+                  <span className="cat-emoji">{cat.emoji}</span>
+                  <span className="cat-name">{cat.name}</span>
+                </button>
+              ))}
+            </div>
+          </section>
         ))}
+        {visibleGroups.length === 0 && <p className="no-results">No categories found.</p>}
       </div>
 
       <button className="link-btn" onClick={toggleAll}>
-        {allSelected ? 'Deselect All' : 'Select All'}
+        {allSelected ? 'Deselect All' : search ? 'Select All Results' : 'Select All'}
       </button>
 
       <div className="custom-section">

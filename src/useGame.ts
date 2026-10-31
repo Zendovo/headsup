@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { categories, shuffle } from './data'
+import { categories } from './data'
+import { loadWordHistory, markWordSeen, orderWordsForRound, type WordHistory } from './wordHistory'
 
 export type Gesture = 'correct' | 'pass'
 export type Phase = 'start' | 'countdown' | 'playing' | 'done'
@@ -25,7 +26,9 @@ function playTone(freq: number, duration: number, gain: number) {
     g.connect(ctx.destination)
     osc.start(ctx.currentTime)
     osc.stop(ctx.currentTime + duration)
-  } catch {}
+  } catch {
+    // Audio is a nice-to-have; ignore unsupported browsers.
+  }
 }
 
 export function playFeedback(gesture: Gesture) {
@@ -44,12 +47,20 @@ export function playCountdownBeep() {
 }
 
 export function useGame(categoryIds: string[], customWords: string[] = []) {
+  const [history] = useState<WordHistory>(loadWordHistory)
+  // All words shown in this game share one id so future rounds can avoid the
+  // whole previous round, not just individual words.
+  const [roundId] = useState(() => Date.now())
+
   const words = useMemo(
-    () => shuffle([
-      ...categories.filter((c) => categoryIds.includes(c.id)).flatMap((c) => c.words),
-      ...customWords,
-    ]),
-    [categoryIds, customWords],
+    () => {
+      const pool = [
+        ...categories.filter((c) => categoryIds.includes(c.id)).flatMap((c) => c.words),
+        ...customWords,
+      ]
+      return orderWordsForRound(pool, history)
+    },
+    [categoryIds, customWords, history],
   )
 
   const [phase, setPhase] = useState<Phase>('start')
@@ -64,7 +75,6 @@ export function useGame(categoryIds: string[], customWords: string[] = []) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const current = words[index]
-  const isDone = index >= words.length
 
   // Game timer
   useEffect(() => {
@@ -84,17 +94,22 @@ export function useGame(categoryIds: string[], customWords: string[] = []) {
   // Countdown
   useEffect(() => {
     if (phase !== 'countdown') return
-    if (countdown < 0) { setPhase('playing'); return }
     const t = setTimeout(() => {
-      if (countdown > 0) playCountdownBeep()
-      setCountdown((c) => c - 1)
+      if (countdown > 0) {
+        playCountdownBeep()
+        setCountdown((c) => c - 1)
+      } else {
+        setPhase('playing')
+      }
     }, 1000)
     return () => clearTimeout(t)
   }, [phase, countdown])
 
+  // Remember each word as it is shown so future rounds prefer unseen words.
   useEffect(() => {
-    if (isDone && phase === 'playing') setPhase('done')
-  }, [isDone, phase])
+    if (phase !== 'playing' || !current) return
+    markWordSeen(history, current, roundId)
+  }, [phase, current, history, roundId])
 
   const start = useCallback(() => {
     setTimeLeft(GAME_DURATION)
